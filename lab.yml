@@ -1,0 +1,376 @@
+---
+# Variables
+AWSTemplateFormatVersion: 2010-09-09
+Description: 
+  Testing for Alvin
+
+Parameters:
+
+  pVpc:
+    Type: String
+    Description: Name of the VPC to create
+    MinLength: 1
+    MaxLength: 30
+    Default: ALVTEST
+
+  pSubnet1:
+    Type: String
+    Description: Name of the first private subnet to create
+    MinLength: 1
+    MaxLength: 30
+    Default: Private1
+
+  pSubnet2:
+    Type: String
+    Description: Name of the second private subnet to create
+    MinLength: 1
+    MaxLength: 30
+    Default: Private2
+
+  pSubnet3:
+    Type: String
+    Description: Name of the first public subnet to create
+    MinLength: 1
+    MaxLength: 30
+    Default: Public3
+
+  pSubnet4:
+    Type: String
+    Description: Name of the second public subnet to create
+    MinLength: 1
+    MaxLength: 30
+    Default: Public4
+
+  pAvailabilityZoneA:
+    Type: String
+    Description: Please enter the Availability Zone A
+    Default: eu-west-1a
+
+  pAvailabilityZoneB:
+    Type: String
+    Description: Please enter the Availability Zone B
+    Default: eu-west-1b
+
+  pVpcCidr:
+    Type: String
+    Description: CIDR for VPC
+    Default: 10.200.0.0/16
+
+  pPrivateSubnet1Cidr:
+    Type: String
+    Description: Subnet for private Subnet 1
+    Default: 10.200.100.0/24
+
+  pPrivateSubnet2Cidr:
+    Type: String
+    Description: Subnet for private Subnet 2
+    Default: 10.200.101.0/24
+
+  pPublicSubnet3Cidr:
+    Type: String
+    Description: Subnet for private Subnet 2
+    Default: 10.200.102.0/24
+
+  pPublicSubnet4Cidr:
+    Type: String
+    Description: Subnet for private Subnet 2
+    Default: 10.200.103.0/24
+  
+  pIGW:
+    Type: String
+    Description: Name of the Internet Gateway
+    MinLength: 1
+    MaxLength: 30
+    Default: TEST-IGW
+
+  pPublicRouteTable:
+    Type: String
+    Description: Name of the public route table
+    MinLength: 1
+    MaxLength: 30
+    Default: PublicRouteTable
+
+  pPrivateRouteTable:
+    Type: String
+    Description: Name of the private route table
+    MinLength: 1
+    MaxLength: 30
+    Default: PrivateRouteTable
+
+  pNatGatewayName1:
+    Type: String
+    Description: Name of the first NAT Gateway
+    MinLength: 1
+    MaxLength: 30
+    Default: TestNAT1
+
+  pNatGatewayName2:
+    Type: String
+    Description: Name of the second NAT Gateway
+    MinLength: 1
+    MaxLength: 30
+    Default: TestNAT2
+
+  pAmi:
+    Type: String
+    Description: EC2 AMI ID (Linux, HVM).
+    Default: ami-3bfab942
+    MinLength: 12
+    MaxLength: 12
+    AllowedPattern: "^ami-[0-9a-fA-F]{8}"
+    ConstraintDescription: Must be a valid AMI ID ami-xxxxxxxx
+    
+  pInstanceType:
+    Type: String
+    Description: Type of instance
+    Default: t2.micro
+
+  pKeyPairName:
+    Type: String
+    Description: Name of key pair to use for EC2 instances
+    MinLength: 1
+    MaxLength: 30
+    Default: ALVINTestKeyPair
+
+Resources:
+
+############################################################### VPC ###############################################################
+# Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref pVpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref pVpc
+
+########################################################### Networking ###########################################################
+# Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: 
+        Ref: VPC
+      CidrBlock: !Ref pPrivateSubnet1Cidr
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Ref pAvailabilityZoneA
+      Tags:
+        - Key: Name
+          Value: !Ref pSubnet1
+
+# Create Private Subnet2
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: 
+        Ref: VPC
+      CidrBlock: !Ref pPrivateSubnet2Cidr
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Ref pAvailabilityZoneB
+      Tags:
+        - Key: Name
+          Value: !Ref pSubnet2
+
+# Create Public Subnet3
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: 
+        Ref: VPC
+      CidrBlock: !Ref pPublicSubnet3Cidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Ref pAvailabilityZoneA
+      Tags:
+        - Key: Name
+          Value: !Ref pSubnet3
+
+# Create Public Subnet4
+  PublicSubnet4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: 
+        Ref: VPC
+      CidrBlock: !Ref pPublicSubnet4Cidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Ref pAvailabilityZoneB
+      Tags:
+        - Key: Name
+          Value: !Ref pSubnet4
+
+# Create Internet Gateway
+  IGW:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Ref pIGW
+
+# Attach Internet Gateway to VPC
+  AttachIGW:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: IGW
+
+# Create Public subnet route table
+  PublicRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId:
+          Ref: VPC
+        Tags:
+        - Key: Name
+          Value: !Ref pPublicRouteTable
+
+# Create Private subnet route table
+  PrivateRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId:
+          Ref: VPC
+        Tags:
+        - Key: Name
+          Value: !Ref pPrivateRouteTable
+
+# Associate private subnets to private route table
+  AssociateRouteTableToPrivateSubnet1:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId:
+          Ref: PrivateSubnet1
+        RouteTableId:
+          Ref: PrivateRouteTable
+
+# Associate private subnets to private route table
+  AssociateRouteTableToPrivateSubnet2:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId:
+          Ref: PrivateSubnet2
+        RouteTableId:
+          Ref: PrivateRouteTable
+
+  AssociateRouteTableToPublicSubnet3:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId:
+          Ref: PublicSubnet3
+        RouteTableId:
+          Ref: PublicRouteTable
+
+  AssociateRouteTableToPublicSubnet4:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId:
+          Ref: PublicSubnet4
+        RouteTableId:
+          Ref: PublicRouteTable
+
+  DefaultRoutePublicSubnet:
+      Type: AWS::EC2::Route
+      DependsOn: IGW
+      Properties:
+        RouteTableId:
+          Ref: PublicRouteTable
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId:
+          Ref: IGW
+  NAT1:
+    DependsOn: IGW
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+          - EIP1
+          - AllocationId
+      SubnetId:
+        Ref: PrivateSubnet1
+      Tags:
+        - Key: Name
+          Value: !Ref pNatGatewayName1
+
+  NAT2:
+    DependsOn: IGW
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+          - EIP2
+          - AllocationId
+      SubnetId:
+        Ref: PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Ref pNatGatewayName2
+
+  EIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  Route:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT1
+
+  EIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  Route:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT2
+
+########################################################### Security Groups ###########################################################
+# Create a Security Group for SSH
+  SecurityGroupSshInEndava:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "SSH all"
+      GroupDescription: "Open SSH trafic"
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+########################################################### Instances ###########################################################
+# Create EC2 Bastion Host
+  awsbastionhost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref pAmi
+      KeyName: !Ref pKeyPairName
+      InstanceType: !Ref pInstanceType
+      SecurityGroupIds:
+        - !Ref SecurityGroupSshInEndava
+      SubnetId: !Ref PublicSubnet3
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -ex
+          sudo hostname aws-bastion-01;
+          echo aws-bastion-01 > /etc/hostname;
+      Tags:
+        - Key: Name
+          Value: aws-bastion-01
+        - Key: Role
+          Value: Bastion Host
