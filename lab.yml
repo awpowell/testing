@@ -339,7 +339,7 @@ Resources:
 
 ########################################################### Security Groups ###########################################################
 # Create a Security Group for SSH
-  SecurityGroupSshInEndava:
+  SecurityGroupSshIn:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: "SSH all"
@@ -354,9 +354,33 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SecurityGroupSshIn
+
+# Create a Security Group for Web Servers
+  SecurityGroupWebserversIn:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "HTTP all internal"
+      GroupDescription: "Open ICMP & HTTP trafic"
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 10.200.0.0/16
+        - IpProtocol: TCP
+            Tags:
+        - Key: Name
+          Value: SecurityGroupHTTPInInternal
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
 
 ########################################################### Instances ###########################################################
-# Create EC2 Bastion Host
+# Create EC2 Bastion Host in Public subnet
   awsbastionhost:
     Type: AWS::EC2::Instance
     Properties:
@@ -364,7 +388,7 @@ Resources:
       KeyName: !Ref pKeyPairName
       InstanceType: !Ref pInstanceType
       SecurityGroupIds:
-        - !Ref SecurityGroupSshInEndava
+        - !Ref SecurityGroupSshIn
       SubnetId: !Ref PublicSubnet3
       UserData:
         Fn::Base64:
@@ -377,3 +401,52 @@ Resources:
           Value: aws-bastion-01
         - Key: Role
           Value: Bastion Host
+
+# Create test web servers in Private subnets
+  webserver1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref pAmi
+      KeyName: !Ref pKeyPairName
+      InstanceType: !Ref pInstanceType
+      SecurityGroupIds:
+        - !Ref SecurityGroupWebserversIn
+      SubnetId: !Ref PrivateSubnet1
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -ex
+          sudo hostname webserver1;
+          echo webserver1 > /etc/hostname;
+          yum update -y
+          yum install -y httpd
+      Tags:
+        - Key: Name
+          Value: webserver1
+        - Key: Role
+          Value: webserver1
+
+# Create test web servers in Private subnets
+  webserver2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref pAmi
+      KeyName: !Ref pKeyPairName
+      InstanceType: !Ref pInstanceType
+      SecurityGroupIds:
+        - !Ref SecurityGroupWebserversIn
+      SubnetId: !Ref PrivateSubnet2
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -ex
+          sudo hostname webserver1;
+          echo webserver2 > /etc/hostname;
+          yum update -y
+          yum install -y httpd
+      Tags:
+        - Key: Name
+          Value: webserver2
+        - Key: Role
+          Value: webserver2
+
