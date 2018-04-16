@@ -271,6 +271,7 @@ Resources:
         RouteTableId:
           Ref: PublicRouteTable
 
+# Create default route to public route table
   DefaultRoutePublicSubnet:
       Type: AWS::EC2::Route
       DependsOn: IGW
@@ -280,6 +281,8 @@ Resources:
         DestinationCidrBlock: 0.0.0.0/0
         GatewayId:
           Ref: IGW
+
+# Create NAT instances for private subnets
   NAT1:
     DependsOn: IGW
     Type: AWS::EC2::NatGateway
