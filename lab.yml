@@ -97,12 +97,19 @@ Parameters:
     MaxLength: 30
     Default: PublicRouteTable
 
-  pPrivateRouteTable:
+  pPrivateRouteTable1:
     Type: String
     Description: Name of the private route table
     MinLength: 1
     MaxLength: 30
-    Default: PrivateRouteTable
+    Default: PrivateRouteTable1
+
+  pPrivateRouteTable2:
+    Type: String
+    Description: Name of the private route table
+    MinLength: 1
+    MaxLength: 30
+    Default: PrivateRouteTable2
 
   pNatGatewayName1:
     Type: String
@@ -235,14 +242,23 @@ Resources:
           Value: !Ref pPublicRouteTable
 
 # Create Private subnet route table
-  PrivateRouteTable:
+  PrivateRouteTable1:
       Type: AWS::EC2::RouteTable
       Properties:
         VpcId:
           Ref: VPC
         Tags:
         - Key: Name
-          Value: !Ref pPrivateRouteTable
+          Value: !Ref pPrivateRouteTable1
+
+  PrivateRouteTable2:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId:
+          Ref: VPC
+        Tags:
+        - Key: Name
+          Value: !Ref pPrivateRouteTable2
 
 # Associate private subnets to private route table
   AssociateRouteTableToPrivateSubnet1:
@@ -251,7 +267,7 @@ Resources:
         SubnetId:
           Ref: PrivateSubnet1
         RouteTableId:
-          Ref: PrivateRouteTable
+          Ref: PrivateRouteTable1
 
 # Associate private subnets to private route table
   AssociateRouteTableToPrivateSubnet2:
@@ -260,7 +276,7 @@ Resources:
         SubnetId:
           Ref: PrivateSubnet2
         RouteTableId:
-          Ref: PrivateRouteTable
+          Ref: PrivateRouteTable2
 
   AssociateRouteTableToPublicSubnet3:
       Type: AWS::EC2::SubnetRouteTableAssociation
@@ -299,7 +315,7 @@ Resources:
           - EIP1
           - AllocationId
       SubnetId:
-        Ref: PrivateSubnet1
+        Ref: PublicSubnet3
       Tags:
         - Key: Name
           Value: !Ref pNatGatewayName1
@@ -313,7 +329,7 @@ Resources:
           - EIP2
           - AllocationId
       SubnetId:
-        Ref: PrivateSubnet2
+        Ref: PublicSubnet4
       Tags:
         - Key: Name
           Value: !Ref pNatGatewayName2
@@ -322,11 +338,11 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-  Route:
+  EIPRoute1:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId:
-        Ref: PublicRouteTable
+        Ref: PrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
         Ref: NAT1
@@ -335,18 +351,18 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-  Route:
+  EIPRoute2:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId:
-        Ref: PublicRouteTable
+        Ref: PrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
         Ref: NAT2
 
 ########################################################### Security Groups ###########################################################
 # Create a Security Group for SSH
-  SecurityGroupSshIn:
+  SGGroupSshIn:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: "SSH all"
@@ -370,7 +386,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: "HTTP all Internal"
-      GroupDescription: "Open HTTP trafic"
+      GroupDescription: "Open HTTP traffic"
       VpcId:
         Ref: VPC
       SecurityGroupIngress:
@@ -393,6 +409,26 @@ Resources:
         - Key: Name
           Value: SecurityGroupWebServers
 
+# Create a Security Group for the ELB to allow http in
+  SecurityGroupHTTPELB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "HTTP all public"
+      GroupDescription: "Open HTTP traffic"
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SecurityGroupHTTPELB
+
 ########################################################### Instances ###########################################################
 # Create EC2 Bastion Host in Public subnet
   awsbastionhost:
@@ -402,7 +438,7 @@ Resources:
       KeyName: !Ref pKeyPairName
       InstanceType: !Ref pInstanceType
       SecurityGroupIds:
-        - !Ref SecurityGroupSshIn
+        - !Ref SGGroupSshIn
       SubnetId: !Ref PublicSubnet3
       UserData:
         Fn::Base64:
@@ -429,9 +465,8 @@ Resources:
       UserData:
         Fn::Base64:
           !Sub |
-          #!/bin/bash -ex
-          sudo hostname webserver1;
-          echo webserver1 > /etc/hostname;
+          #!/bin/bash
+          yum update -y
           yum install -y httpd
           service httpd start
       Tags:
@@ -452,9 +487,8 @@ Resources:
       UserData:
         Fn::Base64:
           !Sub |
-          #!/bin/bash -ex
-          sudo hostname webserver1;
-          echo webserver1 > /etc/hostname;
+          #!/bin/bash
+          yum update -y
           yum install -y httpd
           service httpd start
       Tags:
@@ -479,10 +513,11 @@ Resources:
         InstancePort: '80'
         Protocol: HTTP
       HealthCheck:
-        Target: HTTP:80/
+        Target: TCP:80
         HealthyThreshold: '3'
         UnhealthyThreshold: '5'
         Interval: '30'
         Timeout: '5'
       SecurityGroups:
       - !Ref SecurityGroupWebServers
+      - !Ref SecurityGroupHTTPELB
