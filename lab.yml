@@ -459,26 +459,17 @@ Resources:
       ImageId: !Ref pAmi
       KeyName: !Ref pKeyPairName
       InstanceType: !Ref pInstanceType
-      NetworkInterfaces:
-        - AssociatePublicIpAddress: "false"
-          DeviceIndex: "0"
-          GroupSet: 
-            - Ref: SecurityGroupWebServers
-          SubnetId: 
-            Ref: PublicSubnet4
+      SecurityGroupIds:
+        - !Ref SecurityGroupWebServers
+      SubnetId: !Ref PrivateSubnet1
       UserData:
         Fn::Base64:
           !Sub |
-          #!/bin/bash
-          yum update -y
-          yum install -y httpd
-          echo "<html>Webserver1</html>" > /var/www/html/index.html
-          cd /var/www/html
-          chmod 755 index.html
-          service httpd start
-          chkconfig httpd on
-          hostname webserver1
-          webserver1 > /etc/hostname
+          #!/bin/bash -ex
+          yum update -y;
+          yum install -y httpd;
+          service httpd start;
+          chkconfig httpd on;
       Tags:
         - Key: Name
           Value: webserver1
@@ -491,22 +482,17 @@ Resources:
       ImageId: !Ref pAmi
       KeyName: !Ref pKeyPairName
       InstanceType: !Ref pInstanceType
-      NetworkInterfaces:
-        - AssociatePublicIpAddress: "false"
-          DeviceIndex: "0"
+      SecurityGroupIds:
+        - !Ref SecurityGroupWebServers
+      SubnetId: !Ref PrivateSubnet2
       UserData:
         Fn::Base64:
           !Sub |
-          #!/bin/bash
-          yum update -y
-          yum install -y httpd
-          echo "<html>Webserver2</html>" > /var/www/html/index.html
-          cd /var/www/html
-          chmod 755 index.html
-          service httpd start
-          chkconfig httpd on
-          hostname webserver2
-          webserver2 > /etc/hostname
+          #!/bin/bash -ex
+          yum update -y;
+          yum install -y httpd;
+          service httpd start;
+          chkconfig httpd on;
       Tags:
         - Key: Name
           Value: webserver2
