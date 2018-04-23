@@ -466,10 +466,11 @@ Resources:
         Fn::Base64:
           !Sub |
           #!/bin/bash -ex
-          yum update -y;
-          yum install -y httpd;
-          service httpd start;
-          chkconfig httpd on;
+          hostname webserver1
+          echo webserver1 > /etc/hostname
+          while ! yum install -y httpd; do sleep 5; done;
+          service httpd start
+          chkconfig httpd on
       Tags:
         - Key: Name
           Value: webserver1
@@ -489,10 +490,11 @@ Resources:
         Fn::Base64:
           !Sub |
           #!/bin/bash -ex
-          yum update -y;
-          yum install -y httpd;
-          service httpd start;
-          chkconfig httpd on;
+          while ! yum install -y httpd; do sleep 5; done;
+          service httpd start
+          chkconfig httpd on
+          hostname webserver2
+          echo webserver2 > /etc/hostname
       Tags:
         - Key: Name
           Value: webserver2
@@ -515,7 +517,7 @@ Resources:
         InstancePort: '80'
         Protocol: HTTP
       HealthCheck:
-        Target: TCP:80
+        Target: HTTP:80/index.html
         HealthyThreshold: '3'
         UnhealthyThreshold: '5'
         Interval: '30'
