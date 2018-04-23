@@ -530,14 +530,14 @@ Resources:
           Value: ALVTESTELB
         - Key: Role
           Value: "Load balance HTTP"
- DNSConfig:
-    Type: AWS::Route53::RecordSetGroup
-    Properties:
-      HostedZoneName: infra.zone.
-      Comment: "Alv test Alias to ELB"
-      RecordSets:
-      - Name: alvelb.infra.zone.
-        Type: A
-        AliasTarget:
-          HostedZoneId: !GetAtt ElasticLoadBalancer.CanonicalHostedZoneNameID
-          DNSName: !GetAtt ElasticLoadBalancer.DNSName
+  DNSConfig:
+      Type: AWS::Route53::RecordSetGroup
+      Properties:
+        HostedZoneName: infra.zone.
+        Comment: "Alv test Alias to ELB"
+        RecordSets:
+        - Name: alvelb.infra.zone.
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt ElasticLoadBalancer.CanonicalHostedZoneNameID
+            DNSName: !GetAtt ElasticLoadBalancer.DNSName
