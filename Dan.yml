@@ -1,0 +1,61 @@
+---
+# Variables
+AWSTemplateFormatVersion: 2010-09-09
+Description: 
+  Testing for Dan
+
+Parameters:
+
+  pVpc:
+    Type: String
+    Description: Name of the VPC to create
+    MinLength: 1
+    MaxLength: 30
+    Default: DANTEST
+
+  pVpcCidr:
+    Type: String
+    Description: CIDR for VPC
+    Default: 10.100.0.0/16
+
+  AvailZone1:
+    Type: String
+    Description: Name of the first availibility Zone
+    MinLength: 1
+    MaxLength: 30
+    Default: eu-west-1a
+
+  PrivSubnetA:
+    Type: String
+    Description: Name of the first private subnet to create
+    MinLength: 1
+    MaxLength: 30
+    Default: PrivateSubnetA
+
+Resources:
+
+############################################################### VPC ###############################################################
+# Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref pVpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref pVpc
+
+############################################################### Create Networking  ###############################################################
+# Create Subnets
+  PrSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: 10.100.1.0/24
+      AvailabilityZone: !Ref AvailZone1
+      Tags:
+      - Key: Name
+        Value: !Ref PrivSubnetA
